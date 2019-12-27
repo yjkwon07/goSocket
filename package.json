@@ -1,0 +1,36 @@
+{
+  "name": "gosocket",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon app"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yjkwon07/goSocket.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yjkwon07/goSocket/issues"
+  },
+  "homepage": "https://github.com/yjkwon07/goSocket#readme",
+  "dependencies": {
+    "axios": "^0.19.0",
+    "color-hash": "^1.0.3",
+    "connect-flash": "^0.1.1",
+    "cookie-parser": "^1.4.4",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "express-session": "^1.17.0",
+    "mongoose": "^5.8.3",
+    "morgan": "^1.9.1",
+    "multer": "^1.4.2",
+    "nodemon": "^2.0.2",
+    "pug": "^2.0.4",
+    "socket.io": "^2.3.0",
+    "ws": "^7.2.1"
+  }
+}
