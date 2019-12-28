@@ -2,21 +2,6 @@ extends layout
 
 block content
   div F12를 눌러 console 탭과 network 탭을 확인하세요.
-  //- script.
-  //-   // 웹소켓 스크립트 부분 
-  //-   // 프로토콜만 ws나 wss로 바꾸세요
-  //-   // wss는 https를 쓰는경우
-    
-  //-   // connection이 맺어진다.
-  //-   // 새로고침 하는 순간 페이지를 떠난거다.
-  //-   var webSocket = new WebSocket("ws://localhost:8015");
-  //-   webSocket.onopen = function () {
-  //-     console.log('서버와 웹소켓 연결 성공!');
-  //-   }
-  //-   webSocket.onmessage = function (event) {
-  //-     console.log(event.data);
-  //-     webSocket.send('클라이언트에서 서버로 답장을 보냅니다');
-  //-   }
   script(src="/socket.io/socket.io.js")
   script.
     // 웹소켓 스크립트 
@@ -29,5 +14,3 @@ block content
       socket.emit("message", "Hello Node.js");
       socket.emit("reply","Hello reply");
     });
-
-

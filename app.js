@@ -25,7 +25,7 @@ const sessionMiddleware = session({
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
-app.set('port', process.env.PORT || 8005);
+app.set('port', process.env.PORT || 8015);
 
 app.use(morgan('dev'));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -35,7 +35,6 @@ app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(sessionMiddleware);
 app.use(flash());
 
-// * color-hash는 그냥 익명 사용자를 컬러로 구분하기위한 패키지이다.
 app.use((req,_res,next)=>{
   if(!req.session.color) {
     const colorHash = new colorHash();
@@ -63,6 +62,4 @@ const server = app.listen(app.get('port'), () => {
   console.log(app.get('port'), '번 포트에서 대기중');
 });
 
-// * Socket.IO에서도 미들웨어를 사용할 수 있습니다. 
-// use안에 (req,res,next)를 붙여주면 된다. 
 webSocket(server, app, sessionMiddleware);
