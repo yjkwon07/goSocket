@@ -29,11 +29,13 @@ block content
     input#gif(type='file' name='gif' accept='image/gif')
     input#chat(name='chat')
     button(type='submit') 전송
+    
   script(src='/socket.io/socket.io.js')
   script.
-    var socket = io.connect('http://localhost:8005/chat', {
+    var socket = io.connect('http://localhost:8015/chat', {
       path: '/socket.io'
     });
+    
     socket.on('join', function (data) {
       var div = document.createElement('div');
       div.classList.add('system');
@@ -42,6 +44,7 @@ block content
       div.appendChild(chat);
       document.querySelector('#chat-list').appendChild(div);
     });
+
     socket.on('exit', function (data) {
       var div = document.createElement('div');
       div.classList.add('system');
