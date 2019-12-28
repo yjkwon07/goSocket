@@ -22,7 +22,7 @@ module.exports = (server, app, sessionMiddleWare) => {
     });
   });
 
-  chat.on("conection", socket => {
+  chat.on("connection", socket => {
     console.log("chat 네임스페이스에 접속");
 
     const req = socket.request;
@@ -44,6 +44,8 @@ module.exports = (server, app, sessionMiddleWare) => {
       const currentRoom = socket.adapter.rooms[roomId];
       const userCount = currentRoom ? currentRoom.length : 0;
       if (userCount === 0) {
+        // 직접 디비를 조작하지 말고 (socket통신은 socket 통신으로만),
+        // 라우터를 통해 조작하는게 좋다. (지저분함이 있을 수 있기 때문에)
         asxios
           .delete(`http://localhost:8015/room/${roomId}`)
           .then(() => {
@@ -59,5 +61,7 @@ module.exports = (server, app, sessionMiddleWare) => {
         });
       }
     });
+
   });
+
 };

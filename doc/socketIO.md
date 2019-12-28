@@ -95,7 +95,7 @@ module.exports = (server,app,sessionMiddleWare) => {
     app.set("io",io); // 익스프레스 변수 저장 방법 
     // ex) req.app.get("io").off("/room").emit
     
-    // 네임스페이스
+    // 네임스페이스 default -> io.of("/")
     // 네임스페이스로 실시간 데이터가 전달될 주소를 구별할 수 있습니다.
     // 기본 네임스페이스는 '/' 입니다.
     const room = io.of("/room");

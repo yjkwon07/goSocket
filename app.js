@@ -4,6 +4,7 @@ const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const flash = require('connect-flash');
+const ColorHash = require('color-hash');
 require('dotenv').config();
 
 const webSocket = require('./socket');
@@ -35,9 +36,10 @@ app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(sessionMiddleware);
 app.use(flash());
 
+// * Hash Color Seeting
 app.use((req,_res,next)=>{
   if(!req.session.color) {
-    const colorHash = new colorHash();
+    const colorHash = new ColorHash();
     req.session.color = colorHash.hex(req.session);
   }
   next();
