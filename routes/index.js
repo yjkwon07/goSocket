@@ -1,9 +1,26 @@
 const express = require('express');
-
+const {mkdirp} = require("../public/js/publicDir");
+const multer = require("multer");
+const path = require("path");
 const Room = require("../schemas/room");
 const Chat = require("../schemas/chat");
 
 const router = express.Router();
+
+mkdirp(process.env.UPLOAD);
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination(req,file,callback) {
+      callback(null, process.env.UPLOAD);
+    },
+    filename(req,file,callback){
+      const ext = path.extname(file.originalname);
+      callback(null, path.basename(file.originalname, ext) + Date.now() + ext);
+    },
+  }),
+  limits : {fileSize : 5 * 1024 * 1024},
+});
 
 router.get('/', async (req, res, next) => {
   try {
@@ -91,6 +108,22 @@ router.post('/room/:id/chat', async (req, res, next) => {
     await chat.save();
     req.app.get('io').of('/chat').to(req.params.id).emit('chat', chat);
     res.send('ok');
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+});
+
+router.post("/room/:id/gif", upload.single("gif"), async(req, res,next) =>{
+  try {
+    const chat = new Chat({
+      room: req.params.id,
+      user: req.session.color,
+      gif: req.file.filename,
+    });
+    await chat.save();
+    req.app.get("io").of('/chat').to(req.params.id).emit("chat",chat);
+    res.send("ok");
   } catch (error) {
     console.error(error);
     next(error);
