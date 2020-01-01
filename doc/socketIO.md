@@ -1,13 +1,15 @@
 # Socket
 
 Sokcet.IO는 처음에 HTTP 요청으로 웹소켓 사용 가능 여부를 묻는다.
+
 ## Basic Setting
 
 ### Server
-
+**app.js**
 ```js
-
-    // * color-hash는 그냥 익명 사용자를 컬러로 구분하기위한 패키지이다.
+    const webSocket = require('./socket');
+    
+    // color-hash는 그냥 익명 사용자를 컬러로 구분하기위한 패키지이다.
     app.use((req,_res,next)=>{
       if(!req.session.color) {
         const colorHash = new colorHash();
@@ -16,8 +18,7 @@ Sokcet.IO는 처음에 HTTP 요청으로 웹소켓 사용 가능 여부를 묻�
       next();
     });
 
-    const webSocket = require('./socket');
-
+    // 소켓 미들웨어에서 사용하기 위해 sessionMiddleWare를 따로 분리한다. 
     const sessionMiddleware = session({
       resave: false,
       saveUninitialized: false,
@@ -32,6 +33,10 @@ Sokcet.IO는 처음에 HTTP 요청으로 웹소켓 사용 가능 여부를 묻�
 ```
 
 ### Socket
+- ws와 다른점 
+  - Socket.IO에서는 메세지 이벤트를 키와 값으로 구분할 수 있습니다. 
+  - 즉, 메세지를 구분할 수 있다. 
+**socket.js**
 ```js
     const SocketIO = require("socket.io");
 
@@ -45,6 +50,7 @@ Sokcet.IO는 처음에 HTTP 요청으로 웹소켓 사용 가능 여부를 묻�
 
             // socket.id로 클라이언트를 구분 할 수 있다.
             console.log("새로운 클라이언트 접속!", ip, socket.id, req.ip);
+
             socket.on("disconnect", () => {
                 console.log("클라이언트 접속 해제", ip, socket.id);
                 clearInterval(socket.interval);
@@ -58,18 +64,19 @@ Sokcet.IO는 처음에 HTTP 요청으로 웹소켓 사용 가능 여부를 묻�
             socket.on("message", (data) => {
                 console.log(data);
             });
-            // ws와 다른점 
-            // Socket.IO에서는 메세지 이벤트를 키와 값으로 구분할 수 있습니다. 
-            // 즉, 메세지를 구분할 수 있다. 
+            // 메세지를 key, value로 구분
             socket.interval = setInterval(() => {
-                socket.emit("news", "Hello Socket.IO"); // key, value
+                socket.emit("news", "Hello Socket.IO"); 
             }, 3000);
         });
     };
 ```
 
 ### Client
-```js
+**index.pug**
+- Sokcet.IO는 처음에 HTTP 요청으로 웹소켓 사용 가능 여부를 묻는다.
+  - 하지만 웹소켓 가능 여부 패킷을 보내지 않고 요청을 할 수 있다.
+```pug
   script(src="/socket.io/socket.io.js")
   script.
     // 웹소켓 스크립트 
@@ -84,11 +91,10 @@ Sokcet.IO는 처음에 HTTP 요청으로 웹소켓 사용 가능 여부를 묻�
     });
 ```
 
-## 채팅방 
+## Chat Setting 
 
 ### 네임 스페이스, 소켓에서 미들웨어 사용하기  
-
-
+**socket.js**
 ```js
 module.exports = (server,app,sessionMiddleWare) => {
     const io = SocketIO(server, { path: "/socket.io" });
@@ -160,4 +166,56 @@ module.exports = (server,app,sessionMiddleWare) => {
         });
     });
 }
+```
+
+## DB 작업 주의!! 
+비즈니스 로직은 라우터에서 해결하는것을 권장 
+- 직접 디비를 조작하지 말고 (socket통신은 socket 통신으로만)
+- 라우터를 통해 조작하는게 좋다. (지저분함이 있을 수 있기 때문에)
+  
+**chat.pug**
+```pug
+    script.
+        document.querySelector("#chat-form").addEventListener("submit",function(e){
+        e.preventDefault();
+        if(e.target.chat.value){
+            var xhr = new XMLhttpRequest();
+            xhr.onload = function(){
+            if(xhr.status === 200){
+                e.target.chat.value = "";
+            }
+            else {
+                console.error(xhr.responseText);
+            }
+            };
+            xhr.open("POST","/room/#{room._id}/chat");
+            xhr.setRequestHeader("Content-Type","application/json");
+            xhr.send(JSON.stringify({chat:this.chat.value}));
+        }
+        });
+```
+
+**socket.js**
+```js
+    socket.on("disconnect", () => {
+        console.log("chat 네임스페이스 접속 해제");
+        socket.leave(roomId); // 방 나가기
+        const currentRoom = socket.adapter.rooms[roomId];
+        const userCount = currentRoom ? currentRoom.length : 0;
+        if (userCount === 0) {
+            asxios
+            .delete(`http://localhost:8015/room/${roomId}`)
+            .then(() => {
+                console.log("방 제거 요청 성공");
+            })
+            .catch(error => {
+                console.log(error);
+            });
+        } else {
+            socket.to(roomId).emit("exit", {
+                user: "system",
+                chat: `${req.session.color}님이 퇴장하셨습니다.`
+            });
+        }
+    });
 ```
