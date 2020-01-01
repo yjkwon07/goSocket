@@ -5,7 +5,7 @@ const Chat = require("../schemas/chat");
 
 const router = express.Router();
 
-router.get('/', async (req, res, next) => { 
+router.get('/', async (req, res, next) => {
   try {
     const rooms = await Room.find({});
     res.render("main", { rooms, title: "GIF 채팅방", error: req.flash("roomError") });
@@ -15,7 +15,7 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-router.get("/room", (req, res) => {
+router.get("/room", (_req, res) => {
   res.render("room", { title: "GIF 채팅방 생성" });
 });
 
@@ -40,6 +40,7 @@ router.post("/room", async (req, res, next) => {
 router.get("/room/:id", async (req, res, next) => {
   try {
     const room = await Room.findOne({ _id: req.params.id });
+    const chats = await Chat.find({ room: room._id }).sort("cratedAt");
     const io = req.app.get("io");
     if (!room) {
       req.flash("roomError", "존재하지 않는 방입니다.");
@@ -57,7 +58,7 @@ router.get("/room/:id", async (req, res, next) => {
     return res.render("chat", {
       room,
       title: room.title,
-      chats: [],
+      chats,
       user: req.session.color,
     });
   } catch (error) {
@@ -73,12 +74,12 @@ router.delete("/room/:id", async (req, res, next) => {
     setTimeout(() => {
       req.app.get("io").of("/room").emit("removeRoom",req.params.id);
     }, 2000);
-    res.send("ok");
+    res.status(200).send("REMOVE_ROOM_OK");
   } catch (error) {
     console.error(error);
     next(error);
   }
-});
+}); 
 
 router.post('/room/:id/chat', async (req, res, next) => {
   try {
