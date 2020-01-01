@@ -40,7 +40,7 @@ app.use(flash());
 app.use((req,_res,next)=>{
   if(!req.session.color) {
     const colorHash = new ColorHash();
-    req.session.color = colorHash.hex(req.session);
+    req.session.color = colorHash.hex(req.sessionID);
   }
   next();
 });
