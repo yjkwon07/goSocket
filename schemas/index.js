@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 
 const { MONGO_ID, MONGO_PASSWORD } = process.env;

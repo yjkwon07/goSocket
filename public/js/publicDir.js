@@ -11,7 +11,7 @@ const exist = (dir) => {
 };
 
 const mkdirp = (dir) => {
-    const dirname = path.relative('.', path.normalize(dir)).split(path.sep).filter(p => !!p);
+    const dirname = path.relative('.', path.normalize(dir)).split(path.sep);
     dirname.forEach((_d, idx) => {
         const pathBuilder = dirname.slice(0, idx + 1).join(path.sep);
         if (!exist(pathBuilder)) {

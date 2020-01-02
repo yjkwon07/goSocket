@@ -3,25 +3,23 @@ extends layout
 block content
   h1= title
   a#exit-btn(href='/') 방 나가기
-  #number
-    |'참여자 수: '
-    #number-count= number
+  #number 참여자 수: #{number}
   fieldset
     legend 채팅 내용
     #chat-list
       for chat in chats
         if chat.user === user
-          .mine(style='color:' + chat.user)
+          .mine(style='color:'+chat.user)
             div= chat.user
             if chat.gif
-              img(src='/img/' + chat.gif)
+              img(src='/img/'+chat.gif)
             else
               div= chat.chat
         else if chat.user === 'system'
           .system
             div= chat.chat
         else
-          .other(style='color:' + chat.user)
+          .other(style='color:'+chat.user)
             div= chat.user
             if chat.gif
               img(src='/img/' + chat.gif)
