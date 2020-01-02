@@ -26,8 +26,6 @@ module.exports = (server, app, sessionMiddleWare) => {
   });
 
   chat.on("connection", socket => {
-
-
     const req = socket.request;
     const ip = req.headers["x-forwarded-for"] || req.connection;
     console.log("chat 네임스페이스에 접속", socket.id, req.ip);
@@ -41,7 +39,8 @@ module.exports = (server, app, sessionMiddleWare) => {
 
     socket.to(roomId).emit("join", {
       user: "system",
-      chat: `${req.session.color}님이 입장하셨습니다.`
+      chat: `${req.session.color}님이 입장하셨습니다.`,
+      number: socket.adapter.rooms[roomId].length,
     });
 
     socket.on("disconnect", () => {
@@ -61,7 +60,8 @@ module.exports = (server, app, sessionMiddleWare) => {
       } else {
         socket.to(roomId).emit("exit", {
           user: "system",
-          chat: `${req.session.color}님이 퇴장하셨습니다.`
+          chat: `${req.session.color}님이 퇴장하셨습니다.`,
+          number: socket.adapter.rooms[roomId].length
         });
       }
     });

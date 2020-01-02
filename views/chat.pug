@@ -3,6 +3,9 @@ extends layout
 block content
   h1= title
   a#exit-btn(href='/') 방 나가기
+  #number
+    |'참여자 수: '
+    #number-count= number
   fieldset
     legend 채팅 내용
     #chat-list
@@ -36,6 +39,7 @@ block content
     });
 
     socket.on('join', function (data) {
+      document.querySelector("#number-count").textContent = data.number;
       var div = document.createElement('div');
       div.classList.add('system');
       var chat = document.createElement('div');
@@ -45,6 +49,7 @@ block content
     });
 
     socket.on('exit', function (data) {
+      document.querySelector("#number-count").textContent = data.number;
       var div = document.createElement('div');
       div.classList.add('system');
       var chat = document.createElement('div');
