@@ -10,8 +10,6 @@ require('dotenv').config();
 const webSocket = require('./socket');
 const indexRouter = require('./routes');
 const connect = require('./schemas');
-
-const app = express();
 connect();
 
 const sessionMiddleware = session({
@@ -24,6 +22,8 @@ const sessionMiddleware = session({
   },
 });
 
+const app = express();
+
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 app.set('port', process.env.PORT || 8015);
@@ -35,10 +35,9 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(sessionMiddleware);
 app.use(flash());
-
 // * Hash Color Seeting
-app.use((req,_res,next)=>{
-  if(!req.session.color) {
+app.use((req, _res, next) => {
+  if (!req.session.color) {
     const colorHash = new ColorHash();
     req.session.color = colorHash.hex(req.sessionID);
   }
