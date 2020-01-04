@@ -8,16 +8,9 @@ Sokcet.IO는 처음에 HTTP 요청으로 웹소켓 사용 가능 여부를 묻�
 **app.js**
 ```js
     const webSocket = require('./socket');
+    const session = require('express-session');
+    const ColorHash = require('color-hash');
     
-    // color-hash는 그냥 익명 사용자를 컬러로 구분하기위한 패키지이다.
-    app.use((req,_res,next)=>{
-      if(!req.session.color) {
-        const colorHash = new colorHash();
-        req.session.color = colorHash.hex(req.session);
-      }
-      next();
-    });
-
     // 소켓 미들웨어에서 사용하기 위해 sessionMiddleWare를 따로 분리한다. 
     const sessionMiddleware = session({
       resave: false,
@@ -27,6 +20,19 @@ Sokcet.IO는 처음에 HTTP 요청으로 웹소켓 사용 가능 여부를 묻�
         httpOnly: true,
         secure: false,
       },
+    });
+
+    // color-hash는 그냥 익명 사용자를 컬러로 구분하기위한 패키지이다.
+    app.use((req,res,next)=>{
+      if(!req.session.color) {
+        const colorHash = new colorHash();
+        req.session.color = colorHash.hex(req.sessionID);
+      }
+      next();
+    });
+
+    const server = app.listen(app.get('port'), () => {
+        console.log(app.get('port'), '번 포트에서 대기중');
     });
 
     webSocket(server, app, sessionMiddleware);
@@ -94,23 +100,31 @@ Sokcet.IO는 처음에 HTTP 요청으로 웹소켓 사용 가능 여부를 묻�
 ## Chat Setting 
 
 ### 네임 스페이스, 소켓에서 미들웨어 사용하기  
+- of()
+  - 기본 네임스페이스는 '/' 입니다. -> io.of("/")
+  - 네임스페이스로 실시간 데이터가 전달될 주소를 구별할 수 있습니다.
+  
+- socket.join(방 아이디)
+- socket.to(방 아이디).emit()
+- socket.leave(방 아이디)
+
+- adapter
+  - socket.adapter.rooms[방아이디]
+  - 방 정보와 인원이 들어있다. 
+
 **socket.js**
 ```js
 module.exports = (server,app,sessionMiddleWare) => {
     const io = SocketIO(server, { path: "/socket.io" });
-    app.set("io",io); // 익스프레스 변수 저장 방법 
-    // ex) req.app.get("io").off("/room").emit
-    
-    // 네임스페이스 default -> io.of("/")
-    // 네임스페이스로 실시간 데이터가 전달될 주소를 구별할 수 있습니다.
-    // 기본 네임스페이스는 '/' 입니다.
+    app.set("io",io); // 익스프레스 변수 저장, ex) router: req.app.get("io").of("/room").emit 
+
     const room = io.of("/room");
     const chat = io.of("/chat");
 
     // 익스프레스 미들웨어를 소켓IO에서 쓰는 방법
     // use안에 (req,res,next)를 붙여주면 된다. 
     io.use((socket, next) => {
-        sessionMiddleWare(socket.request, socket.request.res, next);
+        sessionMiddleWare(socket.request,socket.request.res,next);
     });
 
     room.on("connection", (socket) => {
@@ -129,12 +143,10 @@ module.exports = (server,app,sessionMiddleWare) => {
         const roomId = referer
                 .split('/')[referer.split('/').length - 1]
                 .replace(/\?.+/, '');
-        
-        // socket.join(방 아이디)
-        // socket.to(방 아이디).emit()
-        // socket.leave(방 아이디)
+
         socket.join(roomId); // 방에 접속 
 
+        // 방아이디로 이벤트 전달
         socket.to(roomId).emit("join", {
             user: "system",
             chat: `${req.session.color}님이 입장하셨습니다.`
@@ -143,19 +155,18 @@ module.exports = (server,app,sessionMiddleWare) => {
         socket.on("disconnect", () => {
             console.log("chat 네임스페이스 접속 해제");
             socket.leave(roomId); // 방 나가기
-            // 방에 인원이 하나도 없으면 방을 없앤다.
-            // socket.adapter.rooms[방아이디]
-            // 방 정보와 인원이 들어있다. 
             const currentRoom = socket.adapter.rooms[roomId];
             const userCount = currentRoom ? currentRoom.length : 0;
+            // 방에 인원이 하나도 없으면 방을 없앤다.
             if(userCount === 0) {
-                asxios.delete(`http://localhost:8015/room/${roomId}`)
-                .then(() => {
-                    console.log("방 제거 요청 성공");
-                })
-                .catch((error) => {
-                    console.log(error);
-                });
+                asxios
+                    .delete(`http://localhost:8015/room/${roomId}`)
+                    .then(() => {
+                        console.log("방 제거 요청 성공");
+                    })
+                    .catch((error) => {
+                        console.log(error);
+                    });
             }
             else {
                 socket.to(roomId).emit("exit", {
@@ -177,21 +188,21 @@ module.exports = (server,app,sessionMiddleWare) => {
 ```pug
     script.
         document.querySelector("#chat-form").addEventListener("submit",function(e){
-        e.preventDefault();
-        if(e.target.chat.value){
-            var xhr = new XMLhttpRequest();
-            xhr.onload = function(){
-            if(xhr.status === 200){
-                e.target.chat.value = "";
+            e.preventDefault();
+            if(e.target.chat.value){
+                var xhr = new XMLhttpRequest();
+                xhr.onload = function(){
+                if(xhr.status === 200){
+                    e.target.chat.value = "";
+                }
+                else {
+                    console.error(xhr.responseText);
+                }
+                };
+                xhr.open("POST","/room/#{room._id}/chat");
+                xhr.setRequestHeader("Content-Type","application/json");
+                xhr.send(JSON.stringify({chat:this.chat.value}));
             }
-            else {
-                console.error(xhr.responseText);
-            }
-            };
-            xhr.open("POST","/room/#{room._id}/chat");
-            xhr.setRequestHeader("Content-Type","application/json");
-            xhr.send(JSON.stringify({chat:this.chat.value}));
-        }
         });
 ```
 
@@ -204,13 +215,13 @@ module.exports = (server,app,sessionMiddleWare) => {
         const userCount = currentRoom ? currentRoom.length : 0;
         if (userCount === 0) {
             asxios
-            .delete(`http://localhost:8015/room/${roomId}`)
-            .then(() => {
-                console.log("방 제거 요청 성공");
-            })
-            .catch(error => {
-                console.log(error);
-            });
+                .delete(`http://localhost:8015/room/${roomId}`)
+                .then(() => {
+                    console.log("방 제거 요청 성공");
+                })
+                .catch(error => {
+                    console.log(error);
+                });
         } else {
             socket.to(roomId).emit("exit", {
                 user: "system",
@@ -219,3 +230,32 @@ module.exports = (server,app,sessionMiddleWare) => {
         }
     });
 ```
+
+## 소켓 아이디로 귓속말 보내기 
+- socket.to(개인 소켓).emit() 귓속말이 가능하다.
+- socket.emit() -> 전체 
+- socket.to(방아이디).emit -> 해당하는 방 
+- 자기 자신에게는 보낼 수 없다. -> 필요가 없기 때문 
+- 
+socket.id는 해당 메시지를 보낸 유저의 소켓값이다.
+
+이것을 알면 해당 유저에게 메시지를 보낼 수 있다. 
+
+### 라우터를 거치면 좋은점 
+**시나리오**
+    
+    다른 채팅방에 있는 사람의 socket.id만 취득하면 코드를 조작해서 다른 사람들한테 귓속말을 보낼수 있게 된다. 
+
+- 처음에는 http 라우터로 ajax 요청을 하고, 서버에서 socket.emit을 하는게 나아 보인다. 
+  - 미들웨어를 타게 된다. 
+  - A유저 -> B유저 보내도 되는 관계인지 확인이 가능하게 해준다. 
+
+```
+    프론트 -> 서버 
+        or 
+    서버 -> 프론트
+    무엇이든 sokcet.emit -> socket.on으로 전달 
+    서버가 메시지 중계를 해준다. 
+```
+
+

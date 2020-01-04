@@ -36,6 +36,7 @@ router.get("/room", (_req, res) => {
   res.render("room", { title: "채팅방 입장" });
 });
 
+// !! socket emit
 router.post("/room", async (req, res, next) => {
   try {
     const room = new Room({
@@ -45,8 +46,7 @@ router.post("/room", async (req, res, next) => {
       password: req.body.password,
     });
     const newRoom = await room.save();
-    const io = req.app.get("io");
-    io.of("/room").emit("newRoom", newRoom);
+    req.app.get("io").of("/room").emit("newRoom", newRoom);
     res.redirect(`/room/${newRoom._id}?password=${req.body.password}`);
   } catch (error) {
     console.error(error);
@@ -54,6 +54,7 @@ router.post("/room", async (req, res, next) => {
   }
 });
 
+// !! socket adapter
 router.get("/room/:id", async (req, res, next) => {
   try {
     const room = await Room.findOne({ _id: req.params.id });
@@ -76,7 +77,7 @@ router.get("/room/:id", async (req, res, next) => {
       room,
       chats,
       title: room.title,
-      number: (rooms && rooms[req.params.id] && rooms[req.params.id].length + 1) || 1,
+      number: rooms && rooms[req.params.id] && rooms[req.params.id].length,
       user: req.session.color,
     });
   } catch (error) {
@@ -85,11 +86,12 @@ router.get("/room/:id", async (req, res, next) => {
   }
 });
 
+// !! socket emit
 router.delete("/room/:id", async (req, res, next) => {
   try {
     await Room.remove({ _id: req.params.id });
     await Chat.remove({ room: req.params.id });
-    req.app.get("io").of("/room").emit("removeRoom",req.params.id);
+    setTimeout(()=>{req.app.get("io").of("/room").emit("removeRoom",req.params.id)},2000);
     res.status(200).send("REMOVE_ROOM_OK");
   } catch (error) {
     console.error(error);
@@ -97,6 +99,7 @@ router.delete("/room/:id", async (req, res, next) => {
   }
 }); 
 
+// !! socket emit
 router.post('/room/:id/chat', async (req, res, next) => {
   try {
     const chat = new Chat({
@@ -105,7 +108,13 @@ router.post('/room/:id/chat', async (req, res, next) => {
       chat: req.body.chat,
     });
     await chat.save();
-    req.app.get('io').of('/chat').to(req.params.id).emit('chat', chat);
+    // req.app.get('io').of('/chat').to(req.params.id).emit('chat', chat);
+    req.app.get('io').of('/chat').to(req.params.id).emit('chat', {
+      sid:  req.body.sid,
+      room: req.params.id,
+      user: req.session.color,
+      chat: req.body.chat,
+    });
     res.send('ok');
   } catch (error) {
     console.error(error);
@@ -113,6 +122,22 @@ router.post('/room/:id/chat', async (req, res, next) => {
   }
 });
 
+// !! socket emit
+router.post('/room/:id/dm', async (req, res, next) => {
+  try {
+    console.log(req.body)
+    req.app.get('io').to(req.body.to).emit('dm', {
+      from: req.body.from,
+      msg: req.body.msg,
+    });
+    res.send('ok');
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+});
+
+// !! socket emit
 router.post("/room/:id/img", upload.single("img"), async (req, res,next) => {
   try {
     const chat = new Chat({
@@ -121,8 +146,39 @@ router.post("/room/:id/img", upload.single("img"), async (req, res,next) => {
       img: req.file.filename,
     });
     await chat.save();
-    req.app.get("io").of('/chat').to(req.params.id).emit("chat",chat);
+    // req.app.get("io").of('/chat').to(req.params.id).emit("chat",chat);
+    req.app.get('io').of('/chat').to(req.params.id).emit('chat', {
+      socket: req.body.sid,
+      room: req.params.id,
+      user: req.session.color,
+      chat: req.body.chat,
+      img: req.file.filename,
+    });
     res.send("ok");
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+});
+
+// !! socket emit
+router.post("/room/:id/sys", async (req, res, next) => {
+  try {
+    const chat = req.body.type == "join" ?
+      `${req.session.color}님이 입장하셨습니다.` :
+      `${req.session.color}님이 퇴장하셨습니다.`;
+    const sys = new Chat({
+      room: req.params.id,
+      user: "system",
+      chat,
+    });
+    await sys.save();
+    req.app.get("io").of("/chat").to(req.params.id).emit(req.body.type, {
+      user: "system",
+      chat,
+      number: req.app.get("io").of("/chat").adapter.rooms[req.params.id].length
+    });
+    res.status(200).send("OK");
   } catch (error) {
     console.error(error);
     next(error);

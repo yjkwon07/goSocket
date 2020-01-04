@@ -3,7 +3,7 @@ extends layout
 block content
   h1= title
   a#exit-btn(href='/') 방 나가기
-  #number 참여자 수: #{number}
+  #number-count 참여자 수: #{number}
   fieldset
     legend 채팅 내용
     #chat-list
@@ -31,13 +31,10 @@ block content
     input#chat(name='chat')
     button(type='submit') 전송
   script(src='/socket.io/socket.io.js')
-  script(src='/js/chat.js')
   script.
-    var socket = io.connect("http://localhost:8015/chat", {
-      path: "/socket.io"
-    });
+    var socket = io.connect("http://localhost:8015/chat", { path: "/socket.io" });
 
-    socket.on("join", function(data) {
+    function systemChat(data) {
       document.querySelector("#number-count").textContent = data.number;
       var div = document.createElement("div");
       div.classList.add("system");
@@ -45,30 +42,39 @@ block content
       div.textContent = data.chat;
       div.appendChild(chat);
       document.querySelector("#chat-list").appendChild(div);
+    }
+
+    socket.on("join", function(data) {
+      systemChat(data);
     });
 
     socket.on("exit", function(data) {
-      document.querySelector("#number-count").textContent = data.number;
-      var div = document.createElement("div");
-      div.classList.add("system");
-      var chat = document.createElement("div");
-      div.textContent = data.chat;
-      div.appendChild(chat);
-      document.querySelector("#chat-list").appendChild(div);
+      systemChat(data);
     });
 
     socket.on("chat", function(data) {
       var div = document.createElement("div");
       if (data.user === "#{user}") div.classList.add("mine");
       else div.classList.add("other");
+
       var name = document.createElement("div");
       name.textContent = data.user;
+      name.className = 'chat-user';
+      if(data.user!=="#{user}"){
+        var dm = document.createElement("button");
+        dm.textContent = "귓속말";
+        dm.className ="dm";
+        dm.dataset.sid = data.sid;
+        dm.addEventListener("click",sendDm);
+        name.appendChild(dm);
+      }
       div.appendChild(name);
       if (data.chat) {
         var chat = document.createElement("div");
         chat.textContent = data.chat;
         div.appendChild(chat);
-      } else {
+      } 
+      else {
         var img = document.createElement("img");
         img.src ="/img/"+data.img;
         div.appendChild(img);
@@ -76,35 +82,54 @@ block content
       div.style.color = data.user;
       document.querySelector("#chat-list").appendChild(div);
     });
-      document.querySelector("#chat-form").addEventListener("submit", function(e) {
-        e.preventDefault();
-        if (e.target.chat.value) {
-          var xhr = new XMLHttpRequest();
-          xhr.onload = function() {
-            if (xhr.status === 200) {
-              e.target.chat.value = "";
-            } else {
-              console.error(xhr.responseText);
-            }
-          };
-          xhr.open("POST", "/room/#{room._id}/chat");
-          xhr.setRequestHeader("Content-Type", "application/json");
-          xhr.send(JSON.stringify({ chat: this.chat.value }));
-        }
-        });
 
-      document.querySelector("#img").addEventListener("change", function(e) {
-        var formData = new FormData();
+    socket.on("dm", function(data){
+      alert(data.from+"님에게서 귓속말이 도착했습니다:"+data.msg);
+    });
+
+    document.querySelector("#chat-form").addEventListener("submit", function(e) {
+      e.preventDefault();
+      if (e.target.chat.value) {
         var xhr = new XMLHttpRequest();
-        console.log(e.target.files);
-        formData.append("img", e.target.files[0]);
         xhr.onload = function() {
           if (xhr.status === 200) {
-            e.target.file = null;
+            e.target.chat.value = "";
           } else {
             console.error(xhr.responseText);
           }
         };
-        xhr.open("POST", "/room/#{room._id}/img");
-        xhr.send(formData);
-      });
+        xhr.open("POST", "/room/#{room._id}/chat");
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.send(JSON.stringify({ chat: this.chat.value, sid:socket.id }));
+      }
+    });
+
+    document.querySelector("#img").addEventListener("change", function(e) {
+      var formData = new FormData();
+      var xhr = new XMLHttpRequest();
+      formData.append("img", e.target.files[0]);
+      formData.append("sid", socket.id);
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          e.target.file = null;
+        } else {
+          console.error(xhr.responseText);
+        }
+      };
+      xhr.open("POST", "/room/#{room._id}/img");
+      xhr.send(formData);
+    });
+
+    function sendDm(e) {
+      var prompt = window.prompt("귓속말을 입력하세요.");
+      var xhr = new XMLHttpRequest();
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          alert("상대방이 귓속말을 받았습니다.");
+        } else {
+          console.error(xhr.responseText);
+        }
+      }
+      xhr.open("POST","/room/#{room._id}/dm");
+      xhr.send(JSON.stringify({ to:e.target.dataset.sid,msg:prompt,from:"#{user}"}));
+    };
