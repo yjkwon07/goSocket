@@ -131,5 +131,6 @@ block content
         }
       }
       xhr.open("POST","/room/#{room._id}/dm");
+      xhr.setRequestHeader("Content-Type", "application/json");
       xhr.send(JSON.stringify({ to:e.target.dataset.sid,msg:prompt,from:"#{user}"}));
     };

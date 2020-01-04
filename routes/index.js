@@ -125,8 +125,7 @@ router.post('/room/:id/chat', async (req, res, next) => {
 // !! socket emit
 router.post('/room/:id/dm', async (req, res, next) => {
   try {
-    console.log(req.body)
-    req.app.get('io').to(req.body.to).emit('dm', {
+    req.app.get('io').of('/chat').to(req.body.to).emit('dm', {
       from: req.body.from,
       msg: req.body.msg,
     });
@@ -148,7 +147,7 @@ router.post("/room/:id/img", upload.single("img"), async (req, res,next) => {
     await chat.save();
     // req.app.get("io").of('/chat').to(req.params.id).emit("chat",chat);
     req.app.get('io').of('/chat').to(req.params.id).emit('chat', {
-      socket: req.body.sid,
+      sid: req.body.sid,
       room: req.params.id,
       user: req.session.color,
       chat: req.body.chat,
