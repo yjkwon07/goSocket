@@ -1,7 +1,7 @@
 extends layout
 
 block content
-  h1= title
+  h1= room.title
   a#exit-btn(href='/') 방 나가기
   #number-count 참여자 수: #{number}
   fieldset
@@ -68,6 +68,12 @@ block content
         dm.addEventListener("click",sendDm);
         name.appendChild(dm);
       }
+      var banBtn = document.createElement("button");
+      banBtn.className = "ban";
+      banBtn.textContent = "강퇴";
+      banBtn.dataset.sid = data.sid;
+      banBtn.addEventListener("click",banBtn);
+      name.appendChild(banBtn);
       div.appendChild(name);
       if (data.chat) {
         var chat = document.createElement("div");
@@ -85,6 +91,23 @@ block content
 
     socket.on("dm", function(data){
       alert(data.from+"님에게서 귓속말이 도착했습니다:"+data.msg);
+    });
+
+    function ban(e) {
+      var id = e.target.dataset.sid;
+      var name = e.target.textContent;
+      var owner = document.getElementById("room-owner").textContent;
+      console.log("#{user}",owner);
+      if("#{user}" === owner && name !== owner) {
+        if(confirm("#{name}를 강퇴하시겠습니까?")){
+          socket.emit("ban",{id:id});
+        }
+      }
+    }
+    
+    socket.on("ban",function(){
+      alert("강퇴되었습니다.");
+      location.href="/";
     });
 
     document.querySelector("#chat-form").addEventListener("submit", function(e) {

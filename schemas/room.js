@@ -1,8 +1,6 @@
 // 방 목록과 채팅 내용 스키마를 만듭니다. 
 // min은 최솟값
-
 const mongoose = require('mongoose');
-
 const {Schema} = mongoose;
 const roomSchema = new Schema({
     title: {
@@ -20,6 +18,9 @@ const roomSchema = new Schema({
         required: true,
     },
     password: String,
+    userList: {
+        
+    },
     createAt: {
         type:Date,
         default:Date.now

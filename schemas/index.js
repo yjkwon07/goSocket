@@ -27,4 +27,5 @@ module.exports = () => {
 
     require("./room");
     require("./chat");
+    require("./user");
 }
